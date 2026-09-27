@@ -72,6 +72,9 @@ const TRANSLATIONS = {
     filter_mobile: 'Mobile',
     filter_desktop: 'Desktop & Sistem',
     filter_ai: 'AI & LLM',
+    copy_email_btn: 'Salin',
+    copy_email_copied: 'Tersalin!',
+    copy_toast_success: 'Email berhasil disalin ke clipboard!',
     project_link_demo: 'Lihat Disini',
     project_link_github: 'Lihat github',
     contact_title: 'Contact',
@@ -105,6 +108,9 @@ const TRANSLATIONS = {
     filter_mobile: 'Mobile',
     filter_desktop: 'Desktop & System',
     filter_ai: 'AI & LLM',
+    copy_email_btn: 'Copy',
+    copy_email_copied: 'Copied!',
+    copy_toast_success: 'Email copied to clipboard!',
     project_link_demo: 'Live Demo',
     project_link_github: 'View GitHub',
     contact_title: 'Contact',
@@ -116,6 +122,8 @@ const TRANSLATIONS = {
 };
 
 // ===== PROJECTS: tinggal edit array ini saja =====
+// image: 'path.png' untuk 1 gambar utama
+// images: ['path1.png', 'path2.png'] untuk multi-gambar (thumbnail muncul otomatis di halaman project.html)
 // demo: isi URL untuk tampilkan "Lihat Disini", null / "" untuk sembunyikan
 // github: isi URL untuk tampilkan "Lihat github", null / "" untuk sembunyikan
 // fit: 'contain' = gambar full utuh natural tidak kepotong, 'cover' = penuhi frame 16:10 tapi kepotong
@@ -124,6 +132,7 @@ const PROJECTS = [
     title: 'Low-Resource LLM Accelerator',
     category: 'ai',
     image: './media/llm-kuantized.png',
+    images: ['./media/llm-kuantized.png', 'media/ai-cli.png'],
     desc: 'Engine inferensi LLM ringan yang dirancang untuk menjalankan model AI pada perangkat dengan resource terbatas. Dapat berjalan hanya menggunakan CPU dengan penggunaan RAM rendah dan performa generasi yang tetap responsif.',
     desc_en: 'A lightweight LLM inference engine designed to run AI models on resource-constrained devices. Runs entirely on CPU with low RAM footprint while keeping generation responsive.',
     demo: null,
@@ -171,7 +180,8 @@ const PROJECTS = [
   {
     title: 'Portfolio Websites',
     category: 'web',
-    image: './media/portofolio-v1.png',
+    image: 'media/porto-closof-v1/beranda.png',
+    images: ['media/porto-closof-v1/beranda.png', 'media/porto-closof-v1/tentang.png', 'media/porto-closof-v1/project.png', 'media/porto-closof-v1/contact.png'],
     fit: 'cover',
     desc: 'Website portofolio developer untuk menampilkan berbagai project web, mobile, dan desktop dalam satu halaman. Dirancang dengan tampilan sederhana dan responsif agar informasi project serta kemampuan teknis mudah dipahami.',
     desc_en: 'A developer portfolio website showcasing web, mobile, and desktop projects on a single page. Clean, responsive, and crafted for clear presentation of technical skills.',
@@ -449,7 +459,7 @@ const PROJECTS = [
   {
     title: 'Nexus Dashboard UI',
     category: 'web',
-    image: 'media/ecommerce-dashboard-glm.png',
+      image: 'media/ecommerce-dashboard-glm.png',
     desc: 'Prototype dashboard operasional e-commerce dengan tampilan dark mode dan berbagai informasi bisnis dalam satu halaman. Menampilkan KPI, revenue chart, traffic, transaksi terbaru, serta live activity menggunakan data simulasi client-side.',
     desc_en: 'E-commerce operational dashboard with sleek dark mode aesthetics. Displays KPIs, revenue charts, traffic metrics, recent transactions, and simulated live activity.',
     demo: null,
@@ -657,6 +667,8 @@ function esc(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+const projectActiveThumbMap = new Map();
+
 function renderCard(p, i, isFiltering = false) {
   const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.id;
   const fitCls = p.fit === 'cover' ? 'aspect-[16/10] object-cover' : 'h-auto object-contain';
@@ -674,14 +686,43 @@ function renderCard(p, i, isFiltering = false) {
   const animCls = isFiltering ? 'filter-enter' : '';
   const animStyle = isFiltering ? `style="animation-delay: ${Math.min(i * 45, 260)}ms;"` : '';
 
-  const imgHtml = p.image ? `
-      <div class="overflow-hidden border border-black/10 bg-white rounded-none project-img-wrap">
-        <img src="${esc(p.image)}" alt="${esc(displayTitle)}" loading="lazy" onerror="this.closest('.project-img-wrap').remove()" class="w-full ${fitCls} bg-white block project-img" />
+  // Dukungan koleksi gambar / thumbnail multi-foto
+  const projectImages = (Array.isArray(p.images) && p.images.length > 0)
+    ? p.images
+    : (p.image ? [p.image] : []);
+  const activeThumbIdx = projectActiveThumbMap.get(p.title) || 0;
+  const currentBannerSrc = (projectImages.length > activeThumbIdx)
+    ? projectImages[activeThumbIdx]
+    : (projectImages[0] || p.image || null);
+
+  const imgHtml = currentBannerSrc ? `
+      <div class="overflow-hidden bg-white rounded-none project-img-wrap">
+        <img src="${esc(currentBannerSrc)}" alt="${esc(displayTitle)}" loading="lazy" onerror="this.closest('.project-img-wrap').remove()" class="w-full ${fitCls} bg-white block project-img" />
       </div>` : '';
+
+  const thumbsHtml = (projectImages.length > 1) ? `
+      <div class="project-thumbs" role="tablist" aria-label="Pilihan foto ${esc(displayTitle)}">
+        ${projectImages.map((imgSrc, idx) => `
+          <button type="button" 
+            class="project-thumb-btn ${idx === activeThumbIdx ? 'is-active' : ''}" 
+            data-img="${esc(imgSrc)}"
+            data-idx="${idx}"
+            data-title="${esc(p.title)}"
+            aria-label="Pilih foto ${idx + 1}"
+            role="tab"
+            aria-selected="${idx === activeThumbIdx ? 'true' : 'false'}">
+            <img src="${esc(imgSrc)}" alt="Thumbnail ${idx + 1}" loading="lazy" />
+          </button>
+        `).join('')}
+      </div>` : '';
+
+  const titleMarginTop = imgHtml ? (thumbsHtml ? 'mt-3.5' : 'mt-5') : '';
+
   return `
     <article class="project-card reveal ${animCls}" ${animStyle}>
       ${imgHtml}
-      <h3 class="font-semibold text-[20px] tracking-tight ${p.image ? 'mt-5' : ''}">${esc(displayTitle)}</h3>
+      ${thumbsHtml}
+      <h3 class="font-semibold text-[20px] tracking-tight ${titleMarginTop}">${esc(displayTitle)}</h3>
       ${linksHtml}
       <p class="text-muted text-[15px] mt-2 leading-relaxed">${esc(displayDesc)}</p>
       <div class="proj-icons">${techHtml}</div>
@@ -811,6 +852,80 @@ function initProjectFilters() {
         if (extraGrid) extraGrid.classList.remove('grid-filter-leave');
       }, 160);
     });
+  });
+}
+
+// ===== 1-Click Copy Email & Floating Toast =====
+let toastTimeout = null;
+
+function showToast(message) {
+  const toast = document.getElementById('toastNotification');
+  const toastMsg = document.getElementById('toastMessage');
+  if (!toast) return;
+
+  if (toastMsg && message) {
+    toastMsg.textContent = message;
+  }
+
+  toast.classList.add('is-visible');
+
+  if (toastTimeout) clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => {
+    toast.classList.remove('is-visible');
+  }, 2600);
+}
+
+function initCopyEmail() {
+  const copyBtn = document.getElementById('copyEmailBtn');
+  const copyBadge = document.getElementById('copyEmailBadge');
+  if (!copyBtn) return;
+
+  let revertTimeout = null;
+
+  copyBtn.addEventListener('click', async () => {
+    const email = copyBtn.getAttribute('data-email') || 'closof@gmail.com';
+    const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.id;
+
+    let success = false;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(email);
+        success = true;
+      } catch (err) {
+        success = false;
+      }
+    }
+
+    if (!success) {
+      try {
+        const textarea = document.createElement('textarea');
+        textarea.value = email;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        success = document.execCommand('copy');
+        document.body.removeChild(textarea);
+      } catch (e) {
+        success = false;
+      }
+    }
+
+    if (success) {
+      copyBtn.classList.add('is-copied');
+      if (copyBadge) {
+        copyBadge.textContent = dict.copy_email_copied || 'Tersalin!';
+      }
+      showToast(dict.copy_toast_success || 'Email berhasil disalin ke clipboard!');
+
+      if (revertTimeout) clearTimeout(revertTimeout);
+      revertTimeout = setTimeout(() => {
+        copyBtn.classList.remove('is-copied');
+        if (copyBadge) {
+          copyBadge.textContent = dict.copy_email_btn || 'Salin';
+        }
+      }, 2400);
+    }
   });
 }
 
@@ -974,6 +1089,8 @@ function applyLanguage(lang, shouldAnimate = true) {
       if (dict[key] !== undefined) {
         if (el.id === 'projectToggleText') {
           el.textContent = isProjectExpanded ? dict.projects_toggle_close : dict.projects_toggle_more;
+        } else if (el.id === 'copyEmailBadge' && el.closest('.copy-email-pill')?.classList.contains('is-copied')) {
+          el.textContent = dict.copy_email_copied || 'Tersalin!';
         } else {
           el.textContent = dict[key];
         }
@@ -1074,9 +1191,9 @@ function initLanguage() {
 // ===== Hero Typing Animation (Typewriter Effect Berulang) =====
 const TYPING_WORDS = [
   'Fullstack & Software Developer.',
-  'Fullstack Developer',
-  'Software Developer',
-  'AI Enthusiast'
+  'Fullstack Developer.',
+  'Software Developer.',
+  'AI Enthusiast.'
 ];
 
 let typeTimeout = null;
@@ -1138,6 +1255,7 @@ function initTypewriter() {
 renderProjects();
 initProjectToggle();
 initProjectFilters();
+initCopyEmail();
 renderProjectTechStack();
 initLanguage();
 initTypewriter();
@@ -1197,6 +1315,142 @@ document.addEventListener('click', e => {
       setTimeout(() => smoothScrollTo(y), 0);
     }
   }
+});
+
+// ===== Transisi Gambar Project yang Halus & Smooth (Fluid Height Morphing & Zero-Lag Dissolve Crossfade) =====
+async function smoothSwitchProjectImage(card, newSrc) {
+  const wrap = card.querySelector('.project-img-wrap');
+  if (!wrap) return;
+
+  const currentImg = wrap.querySelector('.project-img:not(.project-img-incoming)');
+  if (!currentImg) return;
+  if (currentImg.getAttribute('src') === newSrc) return;
+
+  // Cek prefers-reduced-motion
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    currentImg.setAttribute('src', newSrc);
+    return;
+  }
+
+  // Preload gambar baru jika belum lengkap di cache (tanpa delay jika sudah ter-cache)
+  const preloadImg = new Image();
+  preloadImg.src = newSrc;
+  if (!preloadImg.complete) {
+    try {
+      if (preloadImg.decode) await preloadImg.decode();
+      else await new Promise(r => { preloadImg.onload = preloadImg.onerror = r; });
+    } catch (e) {}
+  }
+
+  // Cek apakah target gambar masih relevan saat selesai decode
+  if (currentImg.getAttribute('src') === newSrc) return;
+
+  // Bersihkan elemen incoming & timer sebelumnya jika ada klik cepat
+  wrap.querySelectorAll('.project-img-incoming').forEach(el => el.remove());
+  if (wrap._morphTimer) {
+    clearTimeout(wrap._morphTimer);
+    wrap._morphTimer = null;
+  }
+
+  // 1. Ukur dimensi container & hitung target tinggi baru secara presisi
+  const wrapWidth = wrap.getBoundingClientRect().width;
+  const oldHeight = wrap.getBoundingClientRect().height;
+  const isCover = currentImg.classList.contains('object-cover');
+
+  let targetHeight = oldHeight;
+  if (!isCover && preloadImg.naturalWidth > 0 && preloadImg.naturalHeight > 0) {
+    targetHeight = Math.round(wrapWidth * (preloadImg.naturalHeight / preloadImg.naturalWidth));
+  }
+
+  // 2. Kunci tinggi awal wrapper
+  wrap.style.height = `${oldHeight}px`;
+  wrap.style.position = 'relative';
+  wrap.style.overflow = 'hidden';
+
+  // 3. Posisikan gambar saat ini secara absolute dengan ukuran tetap (FIXED HEIGHT)
+  // Menjaga ukuran tetap mencegah browser me-rescale bitmap gambar pada setiap frame animasi
+  currentImg.style.position = 'absolute';
+  currentImg.style.top = '0';
+  currentImg.style.left = '0';
+  currentImg.style.width = '100%';
+  currentImg.style.height = `${oldHeight}px`;
+  currentImg.style.objectFit = isCover ? 'cover' : 'contain';
+  currentImg.style.transition = 'opacity 0.36s cubic-bezier(0.16, 1, 0.3, 1)';
+
+  // 4. Siapkan gambar incoming di lapisan atas dengan ukuran target tetap (FIXED HEIGHT)
+  const incomingImg = currentImg.cloneNode(true);
+  incomingImg.classList.add('project-img-incoming');
+  incomingImg.setAttribute('src', newSrc);
+  incomingImg.style.position = 'absolute';
+  incomingImg.style.top = '0';
+  incomingImg.style.left = '0';
+  incomingImg.style.width = '100%';
+  incomingImg.style.height = `${targetHeight}px`;
+  incomingImg.style.objectFit = isCover ? 'cover' : 'contain';
+  incomingImg.style.opacity = '0';
+  incomingImg.style.transition = 'opacity 0.36s cubic-bezier(0.16, 1, 0.3, 1)';
+  incomingImg.style.pointerEvents = 'none';
+
+  wrap.appendChild(incomingImg);
+
+  // Paksa reflow browser tepat sebelum memulai animasi
+  void wrap.offsetHeight;
+
+  // 5. Animasikan perubahan tinggi wrapper dan dissolve crossfade secara bersamaan
+  wrap.style.transition = 'height 0.36s cubic-bezier(0.16, 1, 0.3, 1)';
+  wrap.style.height = `${targetHeight}px`;
+
+  incomingImg.style.opacity = '1';
+  currentImg.style.opacity = '0';
+
+  // 6. Saat transisi selesai, kembalikan gambar dan wrapper ke alur normal tanpa jump
+  wrap._morphTimer = setTimeout(() => {
+    if (incomingImg.parentElement === wrap) {
+      currentImg.remove();
+      incomingImg.classList.remove('project-img-incoming');
+      incomingImg.style.position = '';
+      incomingImg.style.top = '';
+      incomingImg.style.left = '';
+      incomingImg.style.width = '';
+      incomingImg.style.height = '';
+      incomingImg.style.objectFit = '';
+      incomingImg.style.opacity = '';
+      incomingImg.style.transition = '';
+      incomingImg.style.pointerEvents = '';
+      // Nonaktifkan transition terlebih dahulu agar tidak terjadi interpolasi ke 'auto'
+      wrap.style.transition = 'none';
+      wrap.style.height = '';
+      void wrap.offsetHeight;
+      wrap.style.transition = '';
+      wrap._morphTimer = null;
+    }
+  }, 380);
+}
+
+// ===== Delegasi Klik Thumbnail Foto Project =====
+document.addEventListener('click', e => {
+  const thumbBtn = e.target.closest('.project-thumb-btn');
+  if (!thumbBtn) return;
+  const card = thumbBtn.closest('.project-card');
+  if (!card) return;
+
+  const newSrc = thumbBtn.getAttribute('data-img');
+  const title = thumbBtn.getAttribute('data-title');
+  const idx = parseInt(thumbBtn.getAttribute('data-idx') || '0', 10);
+
+  if (title) {
+    projectActiveThumbMap.set(title, idx);
+  }
+
+  if (newSrc) {
+    smoothSwitchProjectImage(card, newSrc);
+  }
+
+  card.querySelectorAll('.project-thumb-btn').forEach(btn => {
+    const isActive = (btn === thumbBtn);
+    btn.classList.toggle('is-active', isActive);
+    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
 });
 
 // ===== Kembali ke atas (Smooth Scroll) =====
