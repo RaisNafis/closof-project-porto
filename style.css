@@ -316,12 +316,16 @@ main, footer{ position:relative; z-index:1; }
 
 /* Animasi Zoom Halus pada Gambar Project */
 .project-img-wrap {
+  position: relative;
   overflow: hidden;
+  border: none !important;
+  will-change: height;
+  contain: paint;
 }
 .project-img {
   transform: scale(1) translateZ(0);
-  transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: transform;
+  transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease;
+  will-change: transform, opacity;
   backface-visibility: hidden;
 }
 .project-img-wrap:hover .project-img,
@@ -589,6 +593,98 @@ main, footer{ position:relative; z-index:1; }
   animation: projectCardIn 0.44s cubic-bezier(0.16, 1, 0.3, 1) both;
   will-change: transform, opacity;
 }
+
+/* Tombol Link ke Halaman Mandiri Project */
+.btn-project-page {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  border-radius: 999px;
+  background: #f4f4f3;
+  color: #111;
+  font-size: 13.5px;
+  font-weight: 500;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
+  cursor: pointer;
+}
+.btn-project-page:hover {
+  background: #111;
+  color: #fff;
+  border-color: #111;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+}
+.btn-project-page svg {
+  transition: transform 0.25s ease;
+}
+.btn-project-page:hover svg {
+  transform: translate(2px, -2px);
+}
+.btn-project-page:active {
+  transform: translateY(0) scale(0.97);
+}
+
+/* ===== Thumbnail Card Foto Kecil (Khusus Halaman project.html) ===== */
+.project-thumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  margin-bottom: 2px;
+}
+
+.project-thumb-btn {
+  width: 58px;
+  height: 36px;
+  padding: 0 !important;
+  border: none !important;
+  outline: none !important;
+  background: transparent;
+  border-radius: 6px;
+  box-shadow: none !important;
+  overflow: hidden;
+  cursor: pointer;
+  opacity: 0.45;
+  transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  display: block;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.project-thumb-btn:hover {
+  opacity: 0.8;
+  transform: translateY(-1px);
+}
+
+.project-thumb-btn:focus,
+.project-thumb-btn:focus-visible {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.project-thumb-btn.is-active {
+  opacity: 1;
+  transform: translateY(-1px);
+  box-shadow: none !important;
+  border: none !important;
+  outline: none !important;
+}
+
+.project-thumb-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 6px;
+  border: none !important;
+  outline: none !important;
+  pointer-events: none;
+}
+
 
 
 
